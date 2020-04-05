@@ -147,22 +147,46 @@ class GAN:
     def test(self):
         data = Data()
         data.load_data()
-        data.normalize()
+        max_num = data.get_max()
 
         self.generator.load_weights("saved_model/G_model_29999.hdf5", True)
         self.discriminator.load_weights("saved_model/D_model_29999.hdf5", True)
 
         test_data = []
-        for i in range(20):
-            # temp = [np.random.normal(0.1, 10)]
-            temp = [np.random.normal(20, 10) / data.max_number]
+        test_label = data.test_label
+
+        threshold_list = [i for i in np.linspace(0.001550, 0.001650, 21)]
+        precision = []
+
+        for item in data.test_data:
+            temp = [item]
             temp = np.expand_dims(temp, axis=1)
             temp = np.expand_dims(temp, axis=1)
             test_data.append(temp)
 
-        for item in test_data:
-            res = self.discriminator.predict(item)
-            print(res)
+        for j in range(len(threshold_list)):
+            mount = 0  # 正确判断的个数
+            for i in range(len(test_data)):
+                res = self.discriminator.predict(test_data[i]/max_num)
+
+                # 计算差距
+                diff = abs(res - 0.5) / 0.5
+
+                # 如果差距大于 threshold，则为假，否则为真
+                if diff < threshold_list[j]:
+                    label = 1
+                else:
+                    label = 0
+                print("判别数据：", test_data[i], "判别结果：", label, "真实结果：", test_label[i])
+                if label == test_label[i]:
+                    mount += 1
+
+            print("准确率：", mount / len(test_data))
+            precision.append(mount / len(test_data))
+
+        plt.plot(threshold_list, precision, marker="*")
+        plt.xticks(rotation=80)
+        plt.show()
 
     def generator_data(self):
         self.generator.load_weights("saved_model/G_model_29999.hdf5", True)
@@ -174,10 +198,10 @@ class GAN:
         data.load_data()
         data.normalize()
 
-        for i in range(1000):
+        for i in range(10000):
             noise = np.random.normal(0, 1, (1, self.latent_dim))
             gen_imgs = self.generator.predict(noise)
-            result.append(gen_imgs[0][0][0] * data.max_number)
+            result.append(gen_imgs[0][0][0] * 44.52)
 
         print(result)
         plt.hist(result, bins=40)

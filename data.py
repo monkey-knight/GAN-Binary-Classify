@@ -48,10 +48,14 @@ class Data:
         self.__m_test_data = np.loadtxt(self.__m_test_path)
         self.__m_test_label = np.loadtxt(self.__m_test_label_path)
 
+    def get_max(self):
+        assert self.__m_train_data is not None
+        f = np.max(np.abs(self.__m_train_data))
+        s = np.max(np.abs(self.__m_test_data))
+        return max(f, s)
+
     def normalize(self):
-        self.__max_number = max(self.__m_train_data)
-        print("最大值：", self.__max_number)
-        self.__m_train_data = np.divide(self.__m_train_data, self.__max_number)
+        self.__m_train_data = np.divide(self.__m_train_data, self.get_max())
 
     @staticmethod
     def plot(data_list: list):
@@ -83,18 +87,27 @@ class Data:
         return self.__m_train_data
 
     @property
+    def test_data(self):
+        return self.__m_test_data
+
+    @property
+    def test_label(self):
+        return self.__m_test_label
+
+    @property
     def max_number(self):
         return self.__max_number
 
 
 if __name__ == '__main__':
     data = Data()
-    # data.data_generator(5,
-    #                     2,
+    # data.data_generator(0.03,
+    #                     3,
     #                     20,
-    #                     10,
+    #                     6,
     #                     20000,
     #                     1000)
     data.load_data()
-    # data.normalize()
+    data.normalize()
     data.plot(list(data.train_data))
+    print(data.get_max())
