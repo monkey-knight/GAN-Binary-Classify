@@ -14,7 +14,7 @@ from data import Data
 
 import sys
 import os
-
+import json
 import numpy as np
 
 
@@ -207,9 +207,49 @@ class GAN:
         plt.hist(result, bins=40)
         plt.show()
 
+def GAN_infer():
+    """
+    使用训练好的GAN推断
+    :return:
+    """
+    #1.读取GAN模型
+    gan = GAN()
+    gan.discriminator.load_weights("saved_model/D_model_29999.hdf5", True)
+    #2.读取json数据,计算平均差异
+    dir_name = "/home/zzw/eclipse_workspace/TST/ns-3.30.1/examples/topology-inference/output/statistic"
+    for file_name in os.listdir(dir_name):
+        if os.path.splitext(file_name)[1] == ".json":
+            filename = os.path.join(dir_name, file_name)
+            with open(filename, "r") as f:
+                content = json.load(f)
+                for index,item in enumerate(content["data"]):
+                    cov12 = float(item["covariance_first_second"])
+                    cov13 = float(item["covariance_first_third"])
+                    cov23 = float(item["covariance_second_third"])
+                    mean_cov = (1 / 3) * (cov12 + cov13 + cov23)
+                    mean_diff_result = (1 / 3) * (
+                                abs(cov12 - mean_cov) + abs(cov13 - mean_cov) + abs(cov23 - mean_cov)) / mean_cov
+                    #推断type
+                    res = gan.discriminator.predict(mean_diff_result)
+                    # 计算差距
+                    diff = abs(res - 0.5) / 0.5
+                    # 如果差距大于 threshold，则为假，否则为真
+                    if diff < threshold_list[j]:
+                        label = 1
+                    else:
+                        label = 0
+                    #将结果保存
+                    content["data"][index]["inferred_type"] = label
+            #写回文件中
+            with open(filename,"w")as f:
+                json.dump(content,f)
+
+
+
 
 if __name__ == '__main__':
-    gan = GAN()
+    # gan = GAN()
     # gan.train(epochs=30000, batch_size=32, sample_interval=15000)
-    gan.test()
+    # gan.test()
     # gan.generator_data()
+    GAN_infer()
